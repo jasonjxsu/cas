@@ -56,13 +56,18 @@ When done, you may build the codebase via the following command:
 ./gradlew build --parallel -x test -x javadoc -x check --build-cache --configure-on-demand
 ```
 
+<div class="alert alert-info"><strong>Gradle Wrapper & Gum</strong>
+<p>Rather than using the Gradle Wrapper directly, you
+might want to <a href="https://github.com/kordamp/gm">use Gum</a>, which is able to 
+auto-detect the location of the Gradle Wrapper anywhere in the project structure.</p></div>
+
 The following commandline boolean flags are supported by the build and can be passed in form of system properties via `-D`:
 
 | Flag                              | Description
 |-----------------------------------+---------------------------------------------------------------------------+
 | `enableRemoteDebugging`           | Allows for remote debugging via a pre-defined port (i.e. `5000`).
 | `remoteDebuggingSuspend`          | Set to `true` to suspend JVM remote debugging until the debugger attaches to the running session.
-| `showStandardStreams`             | Let the build output logs that are sent to the standard streams. (i.e. console, etc)
+| `verbose`                         | Control the logging level for tests and output additional data about passing/failing/skipped tests.
 | `skipCheckstyle`                  | Skip running Checkstyle checks.
 | `skipSpotbugs`                    | Skip running Spotbugs checks.
 | `skipVersionConflict`             | If a dependency conflict is found, use the latest version rather than failing the build.
@@ -93,6 +98,10 @@ CAS development may be carried out using any modern IDE that supports Gradle.
 The following IDEA settings for Gradle may also be useful:
 
 ![image](https://user-images.githubusercontent.com/1205228/71612835-5ea5ed80-2bbc-11ea-8f49-9746dc2b3a70.png)
+
+<div class="alert alert-info"><p>
+You should always use the latest version of the Intellij IDEA.
+</p></div>
 
 Additionally, you may need to customize the VM settings to ensure the development environment can load and index the codebase:
 
@@ -125,8 +134,11 @@ Additionally, you may need to customize the VM settings to ensure the developmen
 -Dsun.io.useCanonCaches=false
 -Djsse.enableSNIExtension=true
 -ea
--Xverify:none
 ```
+
+If you're using OpenJDK 11 or later, you may find the above VM options do not work. The key point for making IntelliJ IDEA 
+handle the project nicely is to give it lots of memory (either by specifying the `-Xmx8g` VM options or in the IDE 
+menu `Help -> Change Memory Settings`).
 
 #### Plugins
 
@@ -152,7 +164,7 @@ should look something like the below screenshot:
 It is possible to run the CAS web application directly from IDEA by 
 creating a *Run Configuration* that roughly matches the following screenshot:
 
-![image](https://user-images.githubusercontent.com/1205228/41805461-9ea25b76-765f-11e8-9a36-fa82d286cf09.png)
+[image](https://user-images.githubusercontent.com/1205228/41805461-9ea25b76-765f-11e8-9a36-fa82d286cf09.png)
 
 This setup allows the developer to run the CAS web 
 application via an [embedded servlet container](Build-Process.html#embedded-containers).
@@ -293,16 +305,30 @@ installing dependencies from the project for use in the cas-overlay.
 # Adjust the cas alias to the location of cas project folder
 alias cas='cd ~/Workspace/cas'
 
-# test cas directly from project rather than using the CAS overlay
-alias bc='clear; cas; cd webapp/cas-server-webapp-tomcat ; \
-    ../../gradlew build bootRun --configure-on-demand --build-cache --parallel \
-    -x test -x javadoc -x check -DremoteDebuggingSuspend=false \
-    -DenableRemoteDebugging=true --stacktrace \
-    -DskipNestedConfigMetadataGen=true'
+# Run CAS with module selections
+# $> bc oidc,gauth
+function bc() {
+  clear
+  cas
+  cd webapp/cas-server-webapp-tomcat
+  casmodules="$1"
+  if [ ! -z "$casmodules" ] ; then
+    echo "Loading CAS Modules: ${casmodules}"
+  fi
 
-# Install jars for use with a CAS overlay project
+  # Could also use: gm -b ./build.gradle
+  ../../gradlew build bootRun \
+    --configure-on-demand --build-cache \
+    --parallel -x test -x javadoc -x check -DenableRemoteDebugging=true \
+    --stacktrace -DskipNestedConfigMetadataGen=true \
+    -DremoteDebuggingSuspend=false \
+    -PcasModules=${casmodules}
+}
+
+# Install JARs/WARs for use with a CAS overlay project
 alias bci='clear; cas; \
-    ./gradlew clean build publishToMavenLocal --configure-on-demand \
+    ./gradlew clean build publishToMavenLocal \ 
+    --configure-on-demand \
     --build-cache --parallel \
     -x test -x javadoc -x check --stacktrace \
     -DskipNestedConfigMetadataGen=true \

@@ -1,7 +1,7 @@
 package org.apereo.cas.web.flow;
 
 import org.apereo.cas.api.PasswordlessUserAccount;
-import org.apereo.cas.authentication.DefaultMultifactorTriggerSelectionStrategy;
+import org.apereo.cas.authentication.DefaultMultifactorAuthenticationTriggerSelectionStrategy;
 import org.apereo.cas.authentication.MultifactorAuthenticationTriggerSelectionStrategy;
 import org.apereo.cas.authentication.mfa.TestMultifactorAuthenticationProvider;
 import org.apereo.cas.util.model.TriStateBoolean;
@@ -23,7 +23,6 @@ import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.webflow.context.servlet.ServletExternalContext;
 import org.springframework.webflow.engine.Flow;
@@ -49,20 +48,20 @@ public class DetermineMultifactorPasswordlessAuthenticationActionTests {
     public static class MultifactorAuthenticationTestConfiguration {
         @Bean
         public MultifactorAuthenticationTriggerSelectionStrategy defaultMultifactorTriggerSelectionStrategy() {
-            return new DefaultMultifactorTriggerSelectionStrategy(List.of());
+            return new DefaultMultifactorAuthenticationTriggerSelectionStrategy(List.of());
         }
     }
-    
+
     @Import({
-        BaseWebflowConfigurerTests.SharedTestConfiguration.class,
-        DetermineMultifactorPasswordlessAuthenticationActionTests.MultifactorAuthenticationTestConfiguration.class
+        DetermineMultifactorPasswordlessAuthenticationActionTests.MultifactorAuthenticationTestConfiguration.class,
+        BaseWebflowConfigurerTests.SharedTestConfiguration.class
     })
     @TestPropertySource(properties = {
+        "spring.main.allow-bean-definition-overriding=true",
         "cas.authn.passwordless.accounts.simple.casuser=casuser@example.org",
         "cas.authn.passwordless.core.multifactor-authentication-activated=true"
     })
     @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-    @DirtiesContext
     @Nested
     @SuppressWarnings("ClassCanBeStatic")
     public class WithoutMultifactorAuthenticationTrigger extends BasePasswordlessAuthenticationActionTests {
@@ -70,7 +69,7 @@ public class DetermineMultifactorPasswordlessAuthenticationActionTests {
         @Autowired
         @Qualifier("determineMultifactorPasswordlessAuthenticationAction")
         private Action determineMultifactorPasswordlessAuthenticationAction;
-        
+
         @Test
         public void verifyAction() throws Exception {
             val exec = new MockFlowExecutionContext(new MockFlowSession(new Flow(CasWebflowConfigurer.FLOW_ID_LOGIN)));
@@ -95,7 +94,6 @@ public class DetermineMultifactorPasswordlessAuthenticationActionTests {
         "cas.authn.mfa.triggers.global.global-provider-id=" + TestMultifactorAuthenticationProvider.ID
     })
     @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-    @DirtiesContext
     @Nested
     @SuppressWarnings("ClassCanBeStatic")
     public class WithMultifactorAuthenticationTrigger extends BasePasswordlessAuthenticationActionTests {

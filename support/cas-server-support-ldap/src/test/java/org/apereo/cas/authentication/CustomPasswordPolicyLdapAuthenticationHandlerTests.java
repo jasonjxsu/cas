@@ -33,7 +33,7 @@ public class CustomPasswordPolicyLdapAuthenticationHandlerTests {
         @Test
         public void verifyOperation() {
             assertNotNull(ldapAuthenticationHandlers);
-            val handler = (LdapAuthenticationHandler) ldapAuthenticationHandlers.iterator().next();
+            val handler = (LdapAuthenticationHandler) ldapAuthenticationHandlers.toList().iterator().next();
             assertTrue(Arrays.stream(handler.getAuthenticator()
                 .getResponseHandlers()).anyMatch(r -> r.getClass().equals(TestAuthenticationResponseHandler.class)));
         }
@@ -43,14 +43,14 @@ public class CustomPasswordPolicyLdapAuthenticationHandlerTests {
         "cas.authn.ldap[0].password-policy.enabled=true",
         "cas.authn.ldap[0].password-policy.custom-policy-class=org.apereo.cas.authentication.UnknownAuthenticationResponseHandler"
     })
-    @SuppressWarnings("ClassCanBeStatic")
     @EnabledIfPortOpen(port = 10389)
+    @SuppressWarnings("ClassCanBeStatic")
     @Nested
     public class UnknownPasswordPolicyClassTests extends DirectLdapAuthenticationHandlerTests {
         @Test
         public void verifyOperation() {
             assertNotNull(ldapAuthenticationHandlers);
-            val handler = (LdapAuthenticationHandler) ldapAuthenticationHandlers.iterator().next();
+            val handler = (LdapAuthenticationHandler) ldapAuthenticationHandlers.toList().iterator().next();
             assertTrue(Arrays.stream(handler.getAuthenticator()
                 .getResponseHandlers()).noneMatch(r -> r.getClass().equals(TestAuthenticationResponseHandler.class)));
         }

@@ -23,6 +23,7 @@ import org.pac4j.core.profile.CommonProfile;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Authenticator for user credentials authentication.
@@ -59,7 +60,8 @@ public class OAuth20UsernamePasswordAuthenticator implements Authenticator {
 
             val clientSecret = clientIdAndSecret.getRight();
             if (!OAuth20Utils.checkClientSecret(registeredService, clientSecret, registeredServiceCipherExecutor)) {
-                throw new CredentialsException("Client Credentials provided is not valid for registered service: " + registeredService.getName());
+                throw new CredentialsException("Client Credentials provided is not valid for registered service: "
+                                               + Objects.requireNonNull(registeredService).getName());
             }
 
             val redirectUri = context.getRequestParameter(OAuth20Constants.REDIRECT_URI)
@@ -68,13 +70,14 @@ public class OAuth20UsernamePasswordAuthenticator implements Authenticator {
                 ? this.webApplicationServiceFactory.createService(redirectUri)
                 : null;
 
-            val authenticationResult = authenticationSystemSupport.handleAndFinalizeSingleAuthenticationTransaction(service, casCredential);
+            val authenticationResult = authenticationSystemSupport.finalizeAuthenticationTransaction(service, casCredential);
             if (authenticationResult == null) {
                 throw new CredentialsException("Could not authenticate the provided credentials");
             }
             val authentication = authenticationResult.getAuthentication();
             val principal = authentication.getPrincipal();
-            val attributes = registeredService.getAttributeReleasePolicy().getAttributes(principal, service, registeredService);
+            val attributes = Objects.requireNonNull(registeredService).getAttributeReleasePolicy()
+                .getAttributes(principal, service, registeredService);
 
             val profile = new CommonProfile();
             val id = registeredService.getUsernameAttributeProvider().resolveUsername(principal, service, registeredService);

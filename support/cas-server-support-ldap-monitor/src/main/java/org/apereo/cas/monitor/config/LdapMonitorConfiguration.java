@@ -6,7 +6,6 @@ import org.apereo.cas.configuration.support.Beans;
 import org.apereo.cas.monitor.PooledLdapConnectionFactoryHealthIndicator;
 import org.apereo.cas.util.LdapUtils;
 
-import lombok.SneakyThrows;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -34,14 +33,9 @@ import java.util.UUID;
  * @author Misagh Moayyed
  * @since 5.0.0
  */
-@Configuration(value = "ldapMonitorConfiguration", proxyBeanMethods = true)
+@Configuration(value = "ldapMonitorConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class LdapMonitorConfiguration {
-    private static final int MAP_SIZE = 8;
-
-    @Autowired
-    private CasConfigurationProperties casProperties;
-
     @Bean
     public ListFactoryBean pooledLdapConnectionFactoryHealthIndicatorListFactoryBean() {
         val list = new ListFactoryBean() {
@@ -57,15 +51,15 @@ public class LdapMonitorConfiguration {
     }
 
     @Bean
-    @SneakyThrows
     @Autowired
     @ConditionalOnEnabledHealthIndicator("pooledLdapConnectionFactoryHealthIndicator")
     public CompositeHealthContributor pooledLdapConnectionFactoryHealthIndicator(
-            @Qualifier("pooledLdapConnectionFactoryHealthIndicatorListFactoryBean")
-            final ListFactoryBean pooledLdapConnectionFactoryHealthIndicatorListFactoryBean) {
+        final CasConfigurationProperties casProperties,
+        @Qualifier("pooledLdapConnectionFactoryHealthIndicatorListFactoryBean")
+        final ListFactoryBean pooledLdapConnectionFactoryHealthIndicatorListFactoryBean) throws Exception {
         val ldaps = casProperties.getMonitor().getLdap();
-        val connectionFactoryList = pooledLdapConnectionFactoryHealthIndicatorListFactoryBean.getObject();
-        val contributors = new LinkedHashMap<>(MAP_SIZE);
+        val connectionFactoryList = Objects.requireNonNull(pooledLdapConnectionFactoryHealthIndicatorListFactoryBean.getObject());
+        val contributors = new LinkedHashMap<>();
         ldaps.stream()
             .filter(LdapMonitorProperties::isEnabled)
             .map(ldap -> {

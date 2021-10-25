@@ -1,6 +1,8 @@
 package org.apereo.cas.pm.rest;
 
+import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
+import org.apereo.cas.config.CasCoreNotificationsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.pm.RestPasswordManagementConfiguration;
 import org.apereo.cas.configuration.CasConfigurationProperties;
@@ -16,6 +18,7 @@ import lombok.val;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringBootConfiguration;
@@ -54,6 +57,8 @@ public class RestPasswordManagementServiceTests {
         RestPasswordManagementConfiguration.class,
         PasswordManagementConfiguration.class,
         RestTemplateAutoConfiguration.class,
+        CasCoreNotificationsConfiguration.class,
+        CasCoreAuditConfiguration.class,
         CasCoreUtilConfiguration.class
     })
     public static class SharedTestConfiguration {
@@ -64,7 +69,7 @@ public class RestPasswordManagementServiceTests {
     @SuppressWarnings("ClassCanBeStatic")
     public class UndefinedConfigurationOperations {
         @Autowired
-        @Qualifier("passwordChangeService")
+        @Qualifier(PasswordManagementService.DEFAULT_BEAN_NAME)
         private PasswordManagementService passwordChangeService;
 
         @Test
@@ -92,7 +97,7 @@ public class RestPasswordManagementServiceTests {
     @SuppressWarnings("ClassCanBeStatic")
     public class BasicOperations {
         @Autowired
-        @Qualifier("passwordChangeService")
+        @Qualifier(PasswordManagementService.DEFAULT_BEAN_NAME)
         private PasswordManagementService passwordChangeService;
 
         @Autowired
@@ -193,6 +198,36 @@ public class RestPasswordManagementServiceTests {
                 webServer.stop();
             }
         }
+
+
+        @Test
+        public void verifyUpdateSecurityQuestions() {
+            val query = PasswordManagementQuery.builder().username("casuser").build();
+            query.securityQuestion("Q1", "A1");
+            try (val webServer = new MockWebServer(9308, HttpStatus.OK)) {
+                webServer.start();
+
+                val props = new CasConfigurationProperties();
+                val rest = props.getAuthn().getPm().getRest();
+                rest.setEndpointUrlChange("http://localhost:9308");
+                rest.setEndpointUrlSecurityQuestions("http://localhost:9308");
+                rest.setEndpointUrlEmail("http://localhost:9308");
+                val passwordService = new RestPasswordManagementService(
+                    passwordManagementCipherExecutor,
+                    props.getServer().getPrefix(),
+                    new RestTemplate(),
+                    props.getAuthn().getPm(),
+                    passwordHistoryService);
+
+                assertDoesNotThrow(new Executable() {
+                    @Override
+                    public void execute() throws Throwable {
+                        passwordService.updateSecurityQuestions(query);
+                    }
+                });
+            }
+        }
+
 
         @Test
         public void verifyPasswordChanged() {

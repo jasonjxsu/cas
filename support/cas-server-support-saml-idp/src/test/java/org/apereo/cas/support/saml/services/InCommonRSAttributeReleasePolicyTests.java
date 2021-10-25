@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
 })
 public class InCommonRSAttributeReleasePolicyTests extends BaseSamlIdPConfigurationTests {
     private static final File JSON_FILE = new File(FileUtils.getTempDirectoryPath(), "InCommonRSAttributeReleasePolicyTests.json");
+
     private static final ObjectMapper MAPPER = JacksonObjectMapperFactory.builder()
         .defaultTypingEnabled(true).build().toObjectMapper();
 
@@ -40,9 +41,9 @@ public class InCommonRSAttributeReleasePolicyTests extends BaseSamlIdPConfigurat
         val registeredService = SamlIdPTestUtils.getSamlRegisteredService();
         registeredService.setAttributeReleasePolicy(filter);
         val attributes = filter.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser",
-            CollectionUtils.wrap("eduPersonPrincipalName", "cas-eduPerson-user", 
-                "mail", "cas@example.org",
-                "sn", "surname")),
+                CollectionUtils.wrap("eduPersonPrincipalName", "cas-eduPerson-user",
+                    "mail", "cas@example.org",
+                    "sn", "surname")),
             CoreAuthenticationTestUtils.getService(), registeredService);
         assertFalse(attributes.isEmpty());
         assertTrue(attributes.containsKey("eduPersonPrincipalName"));
@@ -51,11 +52,44 @@ public class InCommonRSAttributeReleasePolicyTests extends BaseSamlIdPConfigurat
     }
 
     @Test
+    public void verifyOids() {
+        val filter = new InCommonRSAttributeReleasePolicy();
+        filter.setUseUniformResourceName(true);
+
+        val registeredService = SamlIdPTestUtils.getSamlRegisteredService();
+        registeredService.setAttributeReleasePolicy(filter);
+        val attributes = filter.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser",
+                CollectionUtils.wrap("eduPersonPrincipalName", "cas-eduPerson-user",
+                    "mail", "cas@example.org",
+                    "sn", "surname")),
+            CoreAuthenticationTestUtils.getService(), registeredService);
+        assertFalse(attributes.isEmpty());
+        assertTrue(attributes.containsKey("urn:oid:1.3.6.1.4.1.5923.1.1.1.6"));
+        assertTrue(attributes.containsKey("urn:oid:0.9.2342.19200300.100.1.3"));
+        assertTrue(attributes.containsKey("urn:oid:2.5.4.4"));
+    }
+
+    @Test
     public void verifySerializationToJson() throws IOException {
         val filter = new InCommonRSAttributeReleasePolicy();
         MAPPER.writeValue(JSON_FILE, filter);
         val strategyRead = MAPPER.readValue(JSON_FILE, InCommonRSAttributeReleasePolicy.class);
         assertEquals(filter, strategyRead);
+    }
+
+    @Test
+    public void verifyAttributeDefinitions() {
+        val registeredService = SamlIdPTestUtils.getSamlRegisteredService();
+        val policy = new InCommonRSAttributeReleasePolicy();
+        policy.setUseUniformResourceName(true);
+        var definitions = policy.determineRequestedAttributeDefinitions(CoreAuthenticationTestUtils.getPrincipal("casuser"),
+            registeredService, CoreAuthenticationTestUtils.getService("https://sp.testshib.org/shibboleth-sp"));
+        assertTrue(definitions.containsAll(InCommonRSAttributeReleasePolicy.ALLOWED_ATTRIBUTES.values()));
+
+        policy.setUseUniformResourceName(false);
+        definitions = policy.determineRequestedAttributeDefinitions(CoreAuthenticationTestUtils.getPrincipal("casuser"),
+            registeredService, CoreAuthenticationTestUtils.getService("https://sp.testshib.org/shibboleth-sp"));
+        assertTrue(definitions.containsAll(InCommonRSAttributeReleasePolicy.ALLOWED_ATTRIBUTES.keySet()));
     }
 }
 

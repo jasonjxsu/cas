@@ -54,7 +54,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Tag("CouchDb")
 @SpringBootTest(classes = {
     CasCouchDbCoreConfiguration.class,
-    BaseOneTimeTokenRepositoryTests.BaseOneTimeTokenRepositoryTestConfiguration.class,
     GoogleAuthenticatorCouchDbConfiguration.class,
     GoogleAuthenticatorAuthenticationMultifactorProviderBypassConfiguration.class,
     CasWebflowContextConfiguration.class,
@@ -92,7 +91,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "cas.authn.mfa.gauth.couch-db.username=cas",
         "cas.authn.mfa.gauth.couch-db.password=password"
     })
-@EnableAspectJAutoProxy(proxyTargetClass = true)
+@EnableAspectJAutoProxy
 @EnableScheduling
 @Getter
 @EnabledIfPortOpen(port = 5984)

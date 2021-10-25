@@ -26,7 +26,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.support.StaticApplicationContext;
-import org.springframework.test.annotation.DirtiesContext;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,7 +45,6 @@ import static org.mockito.Mockito.*;
 @SpringBootTest(classes = RefreshAutoConfiguration.class,
     properties = "cas.authn.attribute-repository.core.default-attributes-to-release=cn,mail")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@DirtiesContext
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ReturnAllowedAttributeReleasePolicyTests {
 
@@ -73,6 +71,13 @@ public class ReturnAllowedAttributeReleasePolicyTests {
     @Test
     @Order(2)
     public void verifyConsentable() {
+        val applicationContext = new StaticApplicationContext();
+        applicationContext.refresh();
+
+        ApplicationContextProvider.registerBeanIntoApplicationContext(applicationContext, casProperties,
+            CasConfigurationProperties.class.getSimpleName());
+        ApplicationContextProvider.holdApplicationContext(applicationContext);
+        
         val allowedAttributes = new ArrayList<String>();
         allowedAttributes.add("uid");
         allowedAttributes.add("cn");
@@ -97,7 +102,11 @@ public class ReturnAllowedAttributeReleasePolicyTests {
         allowedAttributes.add("cn");
         allowedAttributes.add("givenName");
         val policy = new ReturnAllowedAttributeReleasePolicy(allowedAttributes);
-        assertTrue(policy.determineRequestedAttributeDefinitions().containsAll(policy.getAllowedAttributes()));
+        assertTrue(policy.determineRequestedAttributeDefinitions(
+            CoreAuthenticationTestUtils.getPrincipal(),
+            CoreAuthenticationTestUtils.getRegisteredService(),
+            CoreAuthenticationTestUtils.getService()
+        ).containsAll(policy.getAllowedAttributes()));
     }
 
     @Test
@@ -136,7 +145,7 @@ public class ReturnAllowedAttributeReleasePolicyTests {
 
         ApplicationContextProvider.registerBeanIntoApplicationContext(applicationContext, casProperties,
             CasConfigurationProperties.class.getSimpleName());
-        
+
         val allowedAttributes = new ArrayList<String>();
         allowedAttributes.add("given-name");
         allowedAttributes.add("uid");

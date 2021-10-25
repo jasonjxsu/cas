@@ -1,9 +1,8 @@
 package org.apereo.cas.adaptors.u2f.storage;
 
-import org.apereo.cas.configuration.model.support.mfa.u2f.U2FRestfulMultifactorProperties;
+import org.apereo.cas.configuration.model.support.mfa.u2f.U2FRestfulMultifactorAuthenticationProperties;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.HttpUtils;
-import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 import org.apereo.cas.util.serialization.JacksonObjectMapperFactory;
 
@@ -12,7 +11,6 @@ import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
@@ -34,23 +32,23 @@ import java.util.concurrent.TimeUnit;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-@Slf4j
 public class U2FRestResourceDeviceRepository extends BaseResourceU2FDeviceRepository {
     private static final ObjectMapper MAPPER = JacksonObjectMapperFactory.builder()
         .defaultTypingEnabled(true).build().toObjectMapper();
 
-    private final U2FRestfulMultifactorProperties restProperties;
+    private final U2FRestfulMultifactorAuthenticationProperties restProperties;
 
     public U2FRestResourceDeviceRepository(final LoadingCache<String, String> requestStorage,
                                            final long expirationTime,
                                            final TimeUnit expirationTimeUnit,
-                                           final U2FRestfulMultifactorProperties restProperties,
+                                           final U2FRestfulMultifactorAuthenticationProperties restProperties,
                                            final CipherExecutor<Serializable, String> cipherExecutor) {
         super(requestStorage, expirationTime, expirationTimeUnit, cipherExecutor);
         this.restProperties = restProperties;
     }
 
     @Override
+    @SneakyThrows
     public Map<String, List<U2FDeviceRegistration>> readDevicesFromResource() {
         HttpResponse response = null;
         try {
@@ -67,8 +65,6 @@ public class U2FRestResourceDeviceRepository extends BaseResourceU2FDeviceReposi
                     new TypeReference<>() {
                     });
             }
-        } catch (final Exception e) {
-            LoggingUtils.error(LOGGER, e);
         } finally {
             HttpUtils.close(response);
         }

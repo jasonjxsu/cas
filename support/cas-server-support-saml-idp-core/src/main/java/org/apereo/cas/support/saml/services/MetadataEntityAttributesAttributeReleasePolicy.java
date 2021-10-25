@@ -44,19 +44,20 @@ public class MetadataEntityAttributesAttributeReleasePolicy extends BaseSamlRegi
     private Set<String> entityAttributeValues = new LinkedHashSet<>(0);
 
     @Override
-    protected Map<String, List<Object>> getAttributesForSamlRegisteredService(final Map<String, List<Object>> attributes,
-                                                                              final SamlRegisteredService registeredService,
-                                                                              final ApplicationContext applicationContext,
-                                                                              final SamlRegisteredServiceCachingMetadataResolver resolver,
-                                                                              final SamlRegisteredServiceServiceProviderMetadataFacade facade,
-                                                                              final EntityDescriptor entityDescriptor,
-                                                                              final Principal principal,
-                                                                              final Service selectedService) {
+    protected Map<String, List<Object>> getAttributesForSamlRegisteredService(
+        final Map<String, List<Object>> attributes,
+        final SamlRegisteredService registeredService,
+        final ApplicationContext applicationContext,
+        final SamlRegisteredServiceCachingMetadataResolver resolver,
+        final SamlRegisteredServiceServiceProviderMetadataFacade facade,
+        final EntityDescriptor entityDescriptor,
+        final Principal principal,
+        final Service selectedService) {
         val attr = new EntityAttributesPredicate.Candidate(getEntityAttribute(), getEntityAttributeFormat());
         attr.setValues(getEntityAttributeValues());
         LOGGER.trace("Loading entity attribute predicate filter for candidate [{}] with values [{}]", attr.getName(), attr.getValues());
         val predicate = new EntityAttributesPredicate(CollectionUtils.wrap(attr), true);
-        if (predicate.apply(entityDescriptor)) {
+        if (predicate.test(entityDescriptor)) {
             LOGGER.debug("Authorizing release of allowed attributes [{}] for entity id [{}]",
                 attributes, entityDescriptor.getEntityID());
             return authorizeReleaseOfAllowedAttributes(principal, attributes, registeredService, selectedService);

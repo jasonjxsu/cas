@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 })
 public class EduPersonTargetedIdAttributeReleasePolicyTests extends BaseSamlIdPConfigurationTests {
     private static final File JSON_FILE = new File(FileUtils.getTempDirectoryPath(), "EduPersonTargetedIdAttributeReleasePolicyTests.json");
+
     private static final ObjectMapper MAPPER = JacksonObjectMapperFactory.builder()
         .defaultTypingEnabled(true).build().toObjectMapper();
 
@@ -61,23 +62,34 @@ public class EduPersonTargetedIdAttributeReleasePolicyTests extends BaseSamlIdPC
     @Test
     public void verifyEduPersonTargetedIdViaInCommon() {
         val registeredService = SamlIdPTestUtils.getSamlRegisteredService();
-
         val filter = new InCommonRSAttributeReleasePolicy();
         filter.setOrder(1);
-
         val filter2 = new EduPersonTargetedIdAttributeReleasePolicy();
         filter2.setSalt("OqmG80fEKBQt");
         filter2.setOrder(0);
-
         val chain = new ChainingAttributeReleasePolicy();
         chain.addPolicies(filter);
         chain.addPolicies(filter2);
         registeredService.setAttributeReleasePolicy(chain);
-
         val attributes = chain.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser"),
             CoreAuthenticationTestUtils.getService("https://sp.testshib.org/shibboleth-sp"), registeredService);
-
         assertEquals(List.of("bhb1if0QzFdkKSS5xkcNCALXtGE="),
             attributes.get(EduPersonTargetedIdAttributeReleasePolicy.ATTRIBUTE_NAME_EDU_PERSON_TARGETED_ID));
+    }
+
+    @Test
+    public void verifyEduPersonTargetedIdDefinitions() {
+        val registeredService = SamlIdPTestUtils.getSamlRegisteredService();
+        val policy = new EduPersonTargetedIdAttributeReleasePolicy();
+        policy.setSalt("OqmG80fEKBQt");
+        policy.setUseUniformResourceName(true);
+        var definitions = policy.determineRequestedAttributeDefinitions(CoreAuthenticationTestUtils.getPrincipal("casuser"),
+            registeredService, CoreAuthenticationTestUtils.getService("https://sp.testshib.org/shibboleth-sp"));
+        assertTrue(definitions.contains(EduPersonTargetedIdAttributeReleasePolicy.ATTRIBUTE_URN_EDU_PERSON_TARGETED_ID));
+
+        policy.setUseUniformResourceName(false);
+        definitions = policy.determineRequestedAttributeDefinitions(CoreAuthenticationTestUtils.getPrincipal("casuser"),
+            registeredService, CoreAuthenticationTestUtils.getService("https://sp.testshib.org/shibboleth-sp"));
+        assertTrue(definitions.contains(EduPersonTargetedIdAttributeReleasePolicy.ATTRIBUTE_NAME_EDU_PERSON_TARGETED_ID));
     }
 }

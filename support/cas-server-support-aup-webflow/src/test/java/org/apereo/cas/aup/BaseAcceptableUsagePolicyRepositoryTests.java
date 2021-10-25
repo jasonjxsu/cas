@@ -1,5 +1,6 @@
 package org.apereo.cas.aup;
 
+import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
 import org.apereo.cas.authentication.Authentication;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.Credential;
@@ -71,7 +72,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTest(classes = BaseAcceptableUsagePolicyRepositoryTests.SharedTestConfiguration.class)
 public abstract class BaseAcceptableUsagePolicyRepositoryTests {
     @Autowired
-    @Qualifier("ticketRegistry")
+    @Qualifier(TicketRegistry.BEAN_NAME)
     protected TicketRegistry ticketRegistry;
 
     @Autowired
@@ -93,7 +94,6 @@ public abstract class BaseAcceptableUsagePolicyRepositoryTests {
         final boolean expectPolicyFound) {
         val applicationContext = new StaticApplicationContext();
         applicationContext.refresh();
-        val credential = getCredential("casuser");
         val context = mock(RequestContext.class);
         when(context.getMessageContext()).thenReturn(mock(MessageContext.class));
         when(context.getRequestParameters()).thenReturn(new MockParameterMap());
@@ -109,7 +109,7 @@ public abstract class BaseAcceptableUsagePolicyRepositoryTests {
 
         WebUtils.putRegisteredService(context, service);
         WebUtils.putAuthentication(authentication, context);
-        assertEquals(expectPolicyFound, getAcceptableUsagePolicyRepository().fetchPolicy(context, credential).isPresent());
+        assertEquals(expectPolicyFound, getAcceptableUsagePolicyRepository().fetchPolicy(context).isPresent());
     }
 
     protected void verifyRepositoryAction(final String actualPrincipalId,
@@ -117,10 +117,10 @@ public abstract class BaseAcceptableUsagePolicyRepositoryTests {
         val c = getCredential(actualPrincipalId);
         val context = getRequestContext(actualPrincipalId, profileAttributes, c);
 
-        assertFalse(getAcceptableUsagePolicyRepository().verify(context, c).isAccepted());
-        assertTrue(getAcceptableUsagePolicyRepository().submit(context, c));
+        assertFalse(getAcceptableUsagePolicyRepository().verify(context).isAccepted());
+        assertTrue(getAcceptableUsagePolicyRepository().submit(context));
         if (hasLiveUpdates()) {
-            assertTrue(getAcceptableUsagePolicyRepository().verify(context, c).isAccepted());
+            assertTrue(getAcceptableUsagePolicyRepository().verify(context).isAccepted());
         }
     }
     
@@ -153,6 +153,7 @@ public abstract class BaseAcceptableUsagePolicyRepositoryTests {
         CasCoreTicketCatalogConfiguration.class,
         CasCoreWebConfiguration.class,
         CasCookieConfiguration.class,
+        CasCoreAuditConfiguration.class,
         CasRegisteredServicesTestConfiguration.class,
         CasWebApplicationServiceFactoryConfiguration.class,
         CasCoreMultifactorAuthenticationConfiguration.class,

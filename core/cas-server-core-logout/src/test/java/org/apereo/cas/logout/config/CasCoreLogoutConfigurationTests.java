@@ -21,6 +21,7 @@ import org.apereo.cas.logout.SingleLogoutExecutionRequest;
 import org.apereo.cas.mock.MockTicketGrantingTicket;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.services.ServicesManager;
+import org.apereo.cas.web.ProtocolEndpointWebSecurityConfigurer;
 import org.apereo.cas.web.config.CasCookieConfiguration;
 
 import lombok.val;
@@ -69,12 +70,16 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CasCoreLogoutConfigurationTests {
 
     @Autowired
-    @Qualifier("logoutManager")
+    @Qualifier(LogoutManager.DEFAULT_BEAN_NAME)
     private LogoutManager logoutManager;
 
     @Autowired
-    @Qualifier("servicesManager")
+    @Qualifier(ServicesManager.BEAN_NAME)
     private ServicesManager servicesManager;
+
+    @Autowired
+    @Qualifier("casProtocolEndpointConfigurer")
+    private ProtocolEndpointWebSecurityConfigurer<Void> casProtocolEndpointConfigurer;
 
     @Test
     public void verifyOperation() {
@@ -92,5 +97,6 @@ public class CasCoreLogoutConfigurationTests {
                 .httpServletRequest(Optional.of(new MockHttpServletRequest()))
             .build());
         assertFalse(results.isEmpty());
+        assertFalse(casProtocolEndpointConfigurer.getIgnoredEndpoints().isEmpty());
     }
 }

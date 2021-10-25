@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,9 +43,10 @@ import static org.junit.jupiter.api.Assertions.*;
     "cas.authn.attribute-repository.ldap[0].attributes.entryDN=entryDN",
     "cas.authn.attribute-repository.ldap[0].bind-dn=cn=Directory Manager",
     "cas.authn.attribute-repository.ldap[0].bind-credential=password",
-    "cas.authn.attribute-repository.ldap[0].search-entry-handlers[0].type=DN_ATTRIBUTE_ENTRY"
+    "cas.authn.attribute-repository.ldap[0].search-entry-handlers[0].type=DN_ATTRIBUTE_ENTRY",
+    "cas.authn.attribute-repository.ldap[0].search-entry-handlers[0].type=MERGE_ENTRIES",
+    "cas.authn.attribute-repository.ldap[0].search-entry-handlers[1].type=ACTIVE_DIRECTORY"
 })
-@DirtiesContext
 @Tag("Ldap")
 @EnabledIfPortOpen(port = 10389)
 public class PersonDirectoryPrincipalResolverLdapTests {

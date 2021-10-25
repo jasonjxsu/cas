@@ -7,6 +7,7 @@ import org.apereo.cas.support.saml.SamlIdPTestUtils;
 import org.apereo.cas.support.saml.SamlIdPUtils;
 import org.apereo.cas.support.saml.SamlProtocolConstants;
 import org.apereo.cas.support.saml.SamlUtils;
+import org.apereo.cas.support.saml.authentication.SamlIdPAuthenticationContext;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.EncodingUtils;
 import org.apereo.cas.util.HttpRequestUtils;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.opensaml.core.criterion.EntityIdCriterion;
+import org.opensaml.messaging.context.MessageContext;
 import org.opensaml.saml.common.SAMLObjectBuilder;
 import org.opensaml.saml.common.messaging.context.SAMLMetadataContext;
 import org.opensaml.saml.common.messaging.context.SAMLPeerEntityContext;
@@ -44,6 +46,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 
+import static org.apereo.cas.authentication.CoreAuthenticationTestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -55,7 +58,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("SAML")
 @TestPropertySource(properties = {
     "cas.session-replication.cookie.auto-configure-cookie-path=true",
-    "cas.authn.saml-idp.core.replicate-sessions=true",
+    "cas.authn.saml-idp.core.session-storage-type=TICKET_REGISTRY",
     "cas.authn.saml-idp.core.entity-id=https://cas.example.org/idp",
     "cas.authn.saml-idp.metadata.file-system.location=${#systemProperties['java.io.tmpdir']}/idp-metadata4"
 })
@@ -84,7 +87,7 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
         val saml2Client = new SAML2Client(saml2Configuration);
         saml2Client.setCallbackUrl("http://callback.example.org");
         saml2Client.init();
-        
+
         saml2MessageContext = new SAML2MessageContext();
         saml2MessageContext.setSaml2Configuration(saml2Configuration);
         saml2MessageContext.setWebContext(new JEEContext(new MockHttpServletRequest(), new MockHttpServletResponse()));
@@ -116,7 +119,6 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
     public void verifySerializationToJson() throws IOException {
         val filter = new AuthnRequestRequestedAttributesAttributeReleasePolicy();
         filter.setUseFriendlyName(true);
-        filter.setPermitUndefined(true);
         MAPPER.writeValue(JSON_FILE, filter);
         val strategyRead = MAPPER.readValue(JSON_FILE, AuthnRequestRequestedAttributesAttributeReleasePolicy.class);
         assertEquals(filter, strategyRead);
@@ -128,14 +130,13 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
         val filter = new AuthnRequestRequestedAttributesAttributeReleasePolicy();
         filter.setAllowedAttributes(List.of("eduPersonPrincipalAttribute"));
         filter.setUseFriendlyName(true);
-        filter.setPermitUndefined(true);
 
         val registeredService = SamlIdPTestUtils.getSamlRegisteredService();
         registeredService.setAttributeReleasePolicy(filter);
-        val attributes = filter.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser",
-            CollectionUtils.wrap("eduPersonPrincipalName", "casuser")),
-            CoreAuthenticationTestUtils.getService(), registeredService);
-        assertTrue(attributes.isEmpty());
+        assertThrows(IllegalArgumentException.class,
+            () -> filter.getAttributes(getPrincipal("casuser",
+                    CollectionUtils.wrap("eduPersonPrincipalName", "casuser")),
+                CoreAuthenticationTestUtils.getService(), registeredService));
     }
 
     @Test
@@ -143,7 +144,6 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
         val filter = new AuthnRequestRequestedAttributesAttributeReleasePolicy();
         filter.setAllowedAttributes(List.of("eduPersonPrincipalAttribute"));
         filter.setUseFriendlyName(true);
-        filter.setPermitUndefined(false);
 
         val registeredService = SamlIdPTestUtils.getSamlRegisteredService();
         registeredService.setAttributeReleasePolicy(filter);
@@ -157,10 +157,15 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
             val request = HttpRequestUtils.getHttpServletRequestFromRequestAttributes();
             val response = HttpRequestUtils.getHttpServletResponseFromRequestAttributes();
             val context = new JEEContext(request, response);
-            
+
             samlIdPDistributedSessionStore.set(context, SamlProtocolConstants.PARAMETER_SAML_REQUEST, samlRequest);
-            val attributes = filter.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser",
-                CollectionUtils.wrap("eduPersonPrincipalName", "casuser")),
+            val messageContext = new MessageContext();
+            messageContext.setMessage(authnRequest);
+            samlIdPDistributedSessionStore.set(context, MessageContext.class.getName(),
+                SamlIdPAuthenticationContext.from(messageContext).encode());
+
+            val attributes = filter.getAttributes(getPrincipal("casuser",
+                    CollectionUtils.wrap("eduPersonPrincipalName", "casuser")),
                 CoreAuthenticationTestUtils.getService(), registeredService);
             assertTrue(attributes.isEmpty());
         }
@@ -188,7 +193,7 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
         requestAttribute.setName("givenName");
         extensions.getUnknownXMLObjects().add(requestAttribute);
         authnRequest.setExtensions(extensions);
-        
+
         try (val writer = SamlUtils.transformSamlObject(openSamlConfigBean, authnRequest)) {
             val samlRequest = EncodingUtils.encodeBase64(writer.toString().getBytes(StandardCharsets.UTF_8));
 
@@ -197,8 +202,13 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
             val context = new JEEContext(request, response);
 
             samlIdPDistributedSessionStore.set(context, SamlProtocolConstants.PARAMETER_SAML_REQUEST, samlRequest);
-            val attributes = filter.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser",
-                CollectionUtils.wrap("eduPersonPrincipalName", "casuser", "givenName", "CAS")),
+            val messageContext = new MessageContext();
+            messageContext.setMessage(authnRequest);
+            samlIdPDistributedSessionStore.set(context, MessageContext.class.getName(),
+                SamlIdPAuthenticationContext.from(messageContext).encode());
+
+            val attributes = filter.getAttributes(getPrincipal("casuser",
+                    CollectionUtils.wrap("eduPersonPrincipalName", "casuser", "givenName", "CAS")),
                 CoreAuthenticationTestUtils.getService(), registeredService);
             assertTrue(attributes.isEmpty());
         }
@@ -235,10 +245,19 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
             val context = new JEEContext(request, response);
 
             samlIdPDistributedSessionStore.set(context, SamlProtocolConstants.PARAMETER_SAML_REQUEST, samlRequest);
-            val attributes = filter.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser",
-                CollectionUtils.wrap("eduPersonPrincipalName", "casuser", "givenName", "CAS")),
+            val messageContext = new MessageContext();
+            messageContext.setMessage(authnRequest);
+            samlIdPDistributedSessionStore.set(context, MessageContext.class.getName(),
+                SamlIdPAuthenticationContext.from(messageContext).encode());
+
+            val attributes = filter.getAttributes(getPrincipal("casuser",
+                    CollectionUtils.wrap("eduPersonPrincipalName", "casuser", "givenName", "CAS")),
                 CoreAuthenticationTestUtils.getService(), registeredService);
             assertTrue(attributes.containsKey("eduPersonPrincipalName"));
+
+            val definitions = filter.determineRequestedAttributeDefinitions(getPrincipal("casuser"),
+                registeredService, CoreAuthenticationTestUtils.getService());
+            assertTrue(definitions.contains("eduPersonPrincipalName"));
         }
     }
 }

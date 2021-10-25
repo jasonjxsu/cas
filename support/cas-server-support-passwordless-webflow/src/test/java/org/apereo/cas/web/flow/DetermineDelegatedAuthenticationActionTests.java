@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.webflow.context.servlet.ServletExternalContext;
 import org.springframework.webflow.engine.Flow;
@@ -31,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
-@Tag("WebflowActions")
+@Tag("WebflowAuthenticationActions")
 public class DetermineDelegatedAuthenticationActionTests {
     @Nested
     @Import(BaseWebflowConfigurerTests.SharedTestConfiguration.class)
@@ -40,7 +39,6 @@ public class DetermineDelegatedAuthenticationActionTests {
         "cas.authn.passwordless.core.delegated-authentication-activated=true",
         "cas.authn.passwordless.core.delegated-authentication-selector-script.location=classpath:/DelegatedAuthenticationSelectorScript.groovy"
     })
-    @DirtiesContext
     @SuppressWarnings("ClassCanBeStatic")
     public class WithoutClients extends BasePasswordlessAuthenticationActionTests {
         @Autowired
@@ -73,7 +71,6 @@ public class DetermineDelegatedAuthenticationActionTests {
         "cas.authn.passwordless.core.delegated-authentication-activated=true",
         "cas.authn.passwordless.core.delegated-authentication-selector-script.location=classpath:/DelegatedAuthenticationSelectorScript.groovy"
     })
-    @DirtiesContext
     @SuppressWarnings("ClassCanBeStatic")
     public class WithClients extends BasePasswordlessAuthenticationActionTests {
         @Autowired

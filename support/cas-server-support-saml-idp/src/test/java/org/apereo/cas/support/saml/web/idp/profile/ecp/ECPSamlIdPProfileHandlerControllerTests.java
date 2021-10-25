@@ -8,12 +8,10 @@ import org.apereo.cas.util.HttpUtils;
 import lombok.val;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.opensaml.saml.common.SAMLObjectBuilder;
+import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Issuer;
 import org.opensaml.soap.common.SOAPObjectBuilder;
@@ -25,7 +23,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.annotation.DirtiesContext;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -39,8 +36,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 6.2.0
  */
 @Tag("SAML")
-@DirtiesContext
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ECPSamlIdPProfileHandlerControllerTests extends BaseSamlIdPConfigurationTests {
     @Autowired
     @Qualifier("ecpProfileHandlerController")
@@ -57,7 +52,6 @@ public class ECPSamlIdPProfileHandlerControllerTests extends BaseSamlIdPConfigur
     }
 
     @Test
-    @Order(1)
     public void verifyOK() {
         val response = new MockHttpServletResponse();
         val request = new MockHttpServletRequest();
@@ -75,7 +69,6 @@ public class ECPSamlIdPProfileHandlerControllerTests extends BaseSamlIdPConfigur
     }
 
     @Test
-    @Order(2)
     public void verifyBadAuthn() {
         val response = new MockHttpServletResponse();
         val request = new MockHttpServletRequest();
@@ -93,7 +86,6 @@ public class ECPSamlIdPProfileHandlerControllerTests extends BaseSamlIdPConfigur
     }
 
     @Test
-    @Order(3)
     public void verifyNoCredentials() {
         val response = new MockHttpServletResponse();
         val request = new MockHttpServletRequest();
@@ -108,7 +100,6 @@ public class ECPSamlIdPProfileHandlerControllerTests extends BaseSamlIdPConfigur
     }
 
     @Test
-    @Order(4)
     public void verifyFailures() {
         val response = new MockHttpServletResponse();
         val request = new MockHttpServletRequest();
@@ -149,6 +140,7 @@ public class ECPSamlIdPProfileHandlerControllerTests extends BaseSamlIdPConfigur
         var builder = (SAMLObjectBuilder) openSamlConfigBean.getBuilderFactory()
             .getBuilder(AuthnRequest.DEFAULT_ELEMENT_NAME);
         var authnRequest = (AuthnRequest) builder.buildObject();
+        authnRequest.setProtocolBinding(SAMLConstants.SAML2_PAOS_BINDING_URI);
         builder = (SAMLObjectBuilder) openSamlConfigBean.getBuilderFactory()
             .getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
         val issuer = (Issuer) builder.buildObject();

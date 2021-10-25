@@ -2,7 +2,7 @@ package org.apereo.cas.config;
 
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.consent.ConsentRepository;
-import org.apereo.cas.consent.RestConsentRepository;
+import org.apereo.cas.consent.RestfulConsentRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -19,11 +19,9 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class CasConsentRestConfiguration {
 
-    @Autowired
-    private CasConfigurationProperties casProperties;
-
     @Bean
-    public ConsentRepository consentRepository() {
-        return new RestConsentRepository(casProperties.getConsent().getRest());
+    @Autowired
+    public ConsentRepository consentRepository(final CasConfigurationProperties casProperties) {
+        return new RestfulConsentRepository(casProperties.getConsent().getRest());
     }
 }
